@@ -14,7 +14,7 @@ class MecCatalogServiceTest {
     private MecProductCatalogService catalogService;
 
     @Test
-    void testReturnedFlux() {
+    void validApiResponseTest () {
         WebClient.Builder builder = WebClient.builder()
                 .exchangeFunction(clientRequest ->
                         Mono.just(ClientResponse.create(HttpStatus.OK)
@@ -26,14 +26,16 @@ class MecCatalogServiceTest {
 
         StepVerifier.create(
                 catalogService.getProducts("test", 5))
-                .expectNext(generateTestProduct())
+                .expectNext(new Product("6006-020",
+                        "2020 Habit 6 Bicycle",
+                        "https://cdn.mec.ca/medias/sys_master/fallback/fallback/9058549202974/6006020-BK000-fallback.jpg",
+                        null))
                 .expectComplete()
                 .verify();
-
     }
 
     @Test
-    void blankFluxTest() {
+    void EmptyProductListTest() {
         WebClient.Builder builder = WebClient.builder()
                 .exchangeFunction(clientRequest ->
                         Mono.just(ClientResponse.create(HttpStatus.OK)
@@ -54,13 +56,12 @@ class MecCatalogServiceTest {
     }
 
     @Test
-    void notFoundStatusTest() {
+    void resourceNotFoundTest() {
         WebClient.Builder builder = WebClient.builder()
                 .exchangeFunction(clientRequest ->
                         Mono.just(ClientResponse.create(HttpStatus.NOT_FOUND)
                                 .header("content-type", "application/json")
-                                .body("{\n" +
-                                        "}")
+                                .body("")
                                 .build())
                 );
         catalogService = new MecProductCatalogService(builder);
@@ -69,6 +70,24 @@ class MecCatalogServiceTest {
                 .expectError(NotFoundException.class)
                 .verify();
     }
+
+    @Test
+    void ExternalServerFaultTest() {
+        WebClient.Builder builder = WebClient.builder()
+                .exchangeFunction(clientRequest ->
+                        Mono.just(ClientResponse.create(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .header("content-type", "application/json")
+                                .body("{\n" +
+                                        "}")
+                                .build())
+                );
+        catalogService = new MecProductCatalogService(builder);
+        StepVerifier.create(
+                catalogService.getProducts("test", 5))
+                .expectError(Exception.class)
+                .verify();
+    }
+
 
     private Product generateTestProduct() {
         Product product = new Product();

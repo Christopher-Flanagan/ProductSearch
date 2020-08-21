@@ -19,7 +19,7 @@ public class ProductSearchController {
     }
 
     @GetMapping( produces = { MediaType.APPLICATION_JSON_VALUE })
-    public Flux getProduct(@RequestParam String keyword) {
-        return searchFacade.getProducts(keyword, 5);
+    public Flux getProduct(@RequestParam String keywords) {
+        return searchFacade.getProducts(keywords, 5);
     }
 }

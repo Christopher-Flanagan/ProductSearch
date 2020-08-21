@@ -8,14 +8,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.Collections;
-
 class ImgixColourPaletteExtractorTest {
 
     private ImgixColourPaletteExtractor extractor;
 
     @Test
-    void validMonoResponseTest() {
+    void validApiResponseTest() {
         WebClient.Builder builder = WebClient.builder()
                 .exchangeFunction(clientRequest ->
                         Mono.just(ClientResponse.create(HttpStatus.OK)
@@ -26,7 +24,7 @@ class ImgixColourPaletteExtractorTest {
         extractor = new ImgixColourPaletteExtractor(builder);
 
         StepVerifier.create(
-                extractor.extractPalette("randomImage", Collections.emptyMap()))
+                extractor.extractPalette("http://cdn.mec.ca/test"))
                 .assertNext(i -> {
                     assert i.getPalette().get(0).getValue().equals("#060505");
                     assert i.getPalette().get(1).getValue().equals("#292727");
@@ -40,7 +38,7 @@ class ImgixColourPaletteExtractorTest {
     }
 
     @Test
-    void emptyColourListResponseTest() {
+    void EmptyColourListTest() {
         WebClient.Builder builder = WebClient.builder()
                 .exchangeFunction(clientRequest ->
                         Mono.just(ClientResponse.create(HttpStatus.OK)
@@ -54,7 +52,7 @@ class ImgixColourPaletteExtractorTest {
         extractor = new ImgixColourPaletteExtractor(builder);
 
         StepVerifier.create(
-                extractor.extractPalette("randomImage", Collections.emptyMap()))
+                extractor.extractPalette("http://cdn.mec.ca/test"))
                 .assertNext(i -> {
                     assert i.getPalette().isEmpty();
                 })
@@ -64,7 +62,7 @@ class ImgixColourPaletteExtractorTest {
     }
 
     @Test
-    void notFoundStatusTest() {
+    void notFoundResponseTest() {
         WebClient.Builder builder = WebClient.builder()
                 .exchangeFunction(clientRequest ->
                         Mono.just(ClientResponse.create(HttpStatus.NOT_FOUND)
@@ -75,8 +73,47 @@ class ImgixColourPaletteExtractorTest {
                 );
         extractor = new ImgixColourPaletteExtractor(builder);
         StepVerifier.create(
-                extractor.extractPalette("randomImage", Collections.emptyMap()))
+                extractor.extractPalette("http://cdn.mec.ca/test"))
                 .expectError(NotFoundException.class)
+                .verify();
+    }
+
+    @Test
+    void ExternalServerErrorTest() {
+        WebClient.Builder builder = WebClient.builder()
+                .exchangeFunction(clientRequest ->
+                        Mono.just(ClientResponse.create(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .header("content-type", "application/json")
+                                .body("{\n" +
+                                        "}")
+                                .build())
+                );
+        extractor = new ImgixColourPaletteExtractor(builder);
+        StepVerifier.create(
+                extractor.extractPalette("http://cdn.mec.ca/test"))
+                .expectError(Exception.class)
+                .verify();
+    }
+
+    @Test
+    void InvalidImageUrlTest() {
+        WebClient.Builder builder = WebClient.builder()
+                .exchangeFunction(clientRequest ->
+                        Mono.just(ClientResponse.create(HttpStatus.OK)
+                                .header("content-type", "application/json")
+                                .body("")
+                                .build())
+                );
+        extractor = new ImgixColourPaletteExtractor(builder);
+
+        StepVerifier.create(
+                extractor.extractPalette("http:///test"))
+                .expectComplete()
+                .verify();
+
+        StepVerifier.create(
+                extractor.extractPalette(""))
+                .expectComplete()
                 .verify();
     }
 

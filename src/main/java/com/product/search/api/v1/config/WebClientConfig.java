@@ -25,7 +25,7 @@ public class WebClientConfig {
     @Value( "${api.write.timeout}" )
     private int writeTimeout;
 
-    @Bean
+    @Bean("clientBuilder")
     public WebClient.Builder getWebClientBuilder() {
         HttpClient httpClient = HttpClient.create()
                 .tcpConfiguration(client ->

@@ -32,15 +32,17 @@ public class MecProductCatalogService implements ProductCatalogService {
                         .scheme("http")
                         .host("www.mec.ca")
                         .path("/api/v1/products/search")
-                        .queryParam("keyword", keyword)
+                        .queryParam("keywords", keyword)
                         .build())
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
                         response -> Mono.just(new NotFoundException("No Products associated with the keyword :" + keyword)))
+                .onStatus(status -> status == HttpStatus.INTERNAL_SERVER_ERROR,
+                        response -> Mono.just(new Exception("Error with external server")))
                 .bodyToMono(ProductWrapper.class)
                 .flatMapMany(i -> {
                     if(i.getProductsList() == null) {
-                        throw new NotFoundException(keyword);
+                        return Flux.empty();
                     }
                     else {
                         return Flux.fromStream(i.getProductsList().stream().limit(limit));

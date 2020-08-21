@@ -1,7 +1,9 @@
 package com.product.search.api.v1.controller;
 
+import com.product.search.api.v1.colour.palette.ImgixHexPalette;
 import com.product.search.api.v1.dto.Product;
 import com.product.search.api.v1.facade.ProductSearchFacade;
+import com.product.search.api.v1.image.extractor.ImageColourPaletteExtractor;
 import com.product.search.api.v1.service.ProductCatalogService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
@@ -19,19 +22,24 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @AutoConfigureWebTestClient
-class ProductControllerTest {
-    private final String API_URI = "/api/v1/products/search?keyword={value}";
+class ProductSearchControllerTest {
+    private final String API_URI = "/api/v1/products/search?keywords={value}";
 
     @MockBean
     private ProductCatalogService catalogService;
+    @MockBean
+    private ImageColourPaletteExtractor<ImgixHexPalette> paletteExtractor;
 
     @Autowired
     private ProductSearchFacade<Product> productSearchFacade;
 
     @Test
-    void verifyEndpointTest(@Autowired WebTestClient webClient) {
+    void successfulSearchRequest(@Autowired WebTestClient webClient) {
         Product[] products =  { generateTestProduct(), generateTestProduct()};
+        ImgixHexPalette palette = new ImgixHexPalette();
+
         when(catalogService.getProducts(anyString(), anyInt())).thenReturn(Flux.just(products));
+        when(paletteExtractor.extractPalette(anyString())).thenReturn(Mono.just(palette));
 
         webClient.get().uri(API_URI, "test")
                 .exchange()
@@ -60,7 +68,10 @@ class ProductControllerTest {
     @Test
     void blankQueryParamTest(@Autowired WebTestClient webClient) {
         Product[] products =  { generateTestProduct(), generateTestProduct()};
+        ImgixHexPalette palette = new ImgixHexPalette();
+
         when(catalogService.getProducts(anyString(), anyInt())).thenReturn(Flux.just(products));
+        when(paletteExtractor.extractPalette(anyString())).thenReturn(Mono.just(palette));
 
         webClient.get().uri(API_URI, "")
                 .exchange()
@@ -96,6 +107,7 @@ class ProductControllerTest {
     private Product generateTestProduct() {
         Product product = new Product();
         product.setProductCode(UUID.randomUUID().toString());
+        product.setImageUri("http://cdn.mec.ca/stuff.com");
         return product;
     }
 }
