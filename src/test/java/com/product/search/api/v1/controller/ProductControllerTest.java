@@ -2,6 +2,7 @@ package com.product.search.api.v1.controller;
 
 import com.product.search.api.v1.dto.Product;
 import com.product.search.api.v1.facade.ProductSearchFacade;
+import com.product.search.api.v1.service.ProductCatalogService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
@@ -22,12 +23,15 @@ class ProductControllerTest {
     private final String API_URI = "/api/v1/products/search?keyword={value}";
 
     @MockBean
+    private ProductCatalogService catalogService;
+
+    @Autowired
     private ProductSearchFacade<Product> productSearchFacade;
 
     @Test
     void verifyEndpointTest(@Autowired WebTestClient webClient) {
         Product[] products =  { generateTestProduct(), generateTestProduct()};
-        when(productSearchFacade.getProducts(anyString(), anyInt())).thenReturn(Flux.just(products));
+        when(catalogService.getProducts(anyString(), anyInt())).thenReturn(Flux.just(products));
 
         webClient.get().uri(API_URI, "test")
                 .exchange()
@@ -35,15 +39,28 @@ class ProductControllerTest {
                 .expectBody()
                 .jsonPath("$").isArray()
                 .jsonPath("$").isNotEmpty()
-                .jsonPath("$[0].productCode").isEqualTo(products[0].getProductCode())
-                .jsonPath("$[1].productCode").isEqualTo(products[1].getProductCode())
+                .jsonPath("$[0].product_code").isEqualTo(products[0].getProductCode())
+                .jsonPath("$[1].product_code").isEqualTo(products[1].getProductCode())
                 .jsonPath("$[2]").doesNotExist();
+    }
+
+    @Test
+    void emptyProductListTest(@Autowired WebTestClient webClient) {
+        Product[] products = {};
+        when(catalogService.getProducts(anyString(), anyInt())).thenReturn(Flux.just(products));
+
+        webClient.get().uri(API_URI, "test")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$").isArray()
+                .jsonPath("$").isEmpty();
     }
 
     @Test
     void blankQueryParamTest(@Autowired WebTestClient webClient) {
         Product[] products =  { generateTestProduct(), generateTestProduct()};
-        when(productSearchFacade.getProducts(anyString(), anyInt())).thenReturn(Flux.just(products));
+        when(catalogService.getProducts(anyString(), anyInt())).thenReturn(Flux.just(products));
 
         webClient.get().uri(API_URI, "")
                 .exchange()
@@ -51,8 +68,8 @@ class ProductControllerTest {
                 .expectBody()
                 .jsonPath("$").isArray()
                 .jsonPath("$").isNotEmpty()
-                .jsonPath("$[0].productCode").isEqualTo(products[0].getProductCode())
-                .jsonPath("$[1].productCode").isEqualTo(products[1].getProductCode())
+                .jsonPath("$[0].product_code").isEqualTo(products[0].getProductCode())
+                .jsonPath("$[1].product_code").isEqualTo(products[1].getProductCode())
                 .jsonPath("$[2]").doesNotExist();
     }
 
