@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 @Service
 public class MecProductCatalogService implements ProductCatalogService {
     private static final String API_MIME_TYPE = "application/json";
-    private static final String API_BASE_URL = "?keywords={}";
     private static final Logger logger = LoggerFactory.getLogger(MecProductCatalogService.class);
 
     private WebClient webClient;
@@ -37,7 +36,7 @@ public class MecProductCatalogService implements ProductCatalogService {
                         .build())
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
-                        response -> Mono.just(new NotFoundException(keyword)))
+                        response -> Mono.just(new NotFoundException("No Products associated with the keyword :" + keyword)))
                 .bodyToMono(ProductWrapper.class)
                 .flatMapMany(i -> {
                     if(i.getProductsList() == null) {

@@ -1,6 +1,7 @@
 package com.product.search.api.v1.service;
 
 import com.product.search.api.v1.dto.Product;
+import com.product.search.api.v1.exceptions.NotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -29,6 +30,44 @@ class MecCatalogServiceTest {
                 .expectComplete()
                 .verify();
 
+    }
+
+    @Test
+    void blankFluxTest() {
+        WebClient.Builder builder = WebClient.builder()
+                .exchangeFunction(clientRequest ->
+                        Mono.just(ClientResponse.create(HttpStatus.OK)
+                                .header("content-type", "application/json")
+                                .body("{\n" +
+                                        "\"products\": [\n" +
+                                        "\t]\n" +
+                                        "}")
+                                .build())
+                );
+        catalogService = new MecProductCatalogService(builder);
+
+        StepVerifier.create(
+                catalogService.getProducts("test", 5))
+                .expectComplete()
+                .verify();
+
+    }
+
+    @Test
+    void notFoundStatusTest() {
+        WebClient.Builder builder = WebClient.builder()
+                .exchangeFunction(clientRequest ->
+                        Mono.just(ClientResponse.create(HttpStatus.NOT_FOUND)
+                                .header("content-type", "application/json")
+                                .body("{\n" +
+                                        "}")
+                                .build())
+                );
+        catalogService = new MecProductCatalogService(builder);
+        StepVerifier.create(
+                catalogService.getProducts("test", 5))
+                .expectError(NotFoundException.class)
+                .verify();
     }
 
     private Product generateTestProduct() {
